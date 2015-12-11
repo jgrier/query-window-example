@@ -46,19 +46,19 @@ under the License.
 		<dependencies>
 			<dependency>
 				<groupId>com.typesafe.akka</groupId>
-				<artifactId>akka-actor_2.10</artifactId>
+				<artifactId>akka-actor_2.11</artifactId>
 				<version>${akka.version}</version>
 			</dependency>
 
 			<dependency>
 				<groupId>com.typesafe.akka</groupId>
-				<artifactId>akka-remote_2.10</artifactId>
+				<artifactId>akka-remote_2.11</artifactId>
 				<version>${akka.version}</version>
 			</dependency>
 
 			<dependency>
 				<groupId>com.typesafe.akka</groupId>
-				<artifactId>akka-slf4j_2.10</artifactId>
+				<artifactId>akka-slf4j_2.11</artifactId>
 				<version>${akka.version}</version>
 			</dependency>
 
