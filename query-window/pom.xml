@@ -79,29 +79,29 @@
 
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-java</artifactId>
+			<artifactId>flink-java_2.11</artifactId>
 			<version>${flink.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-streaming-java</artifactId>
+			<artifactId>flink-streaming-java_2.11</artifactId>
 			<version>${flink.version}</version>
 		</dependency>
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-runtime</artifactId>
-			<version>${flink.version}</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-connector-kafka</artifactId>
+			<artifactId>flink-runtime_2.11</artifactId>
 			<version>${flink.version}</version>
 		</dependency>
 
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-clients</artifactId>
+			<artifactId>flink-connector-kafka_2.11</artifactId>
+			<version>${flink.version}</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.flink</groupId>
+			<artifactId>flink-clients_2.11</artifactId>
 			<version>${flink.version}</version>
 		</dependency>
 
@@ -112,14 +112,14 @@
 
 		<dependency>
 			<groupId>org.apache.flink</groupId>
-			<artifactId>flink-test-utils</artifactId>
+			<artifactId>flink-test-utils_2.11</artifactId>
 			<version>${flink.version}</version>
 			<scope>test</scope>
 		</dependency>
 
 		<dependency>
 			<groupId>com.typesafe.akka</groupId>
-			<artifactId>akka-testkit_2.10</artifactId>
+			<artifactId>akka-testkit_2.11</artifactId>
 			<version>${akka.version}</version>
 			<scope>test</scope>
 		</dependency>
@@ -162,17 +162,17 @@
 									Everything else will be packaged into the fat-jar
 									-->
 									<exclude>org.apache.flink:flink-shaded-*</exclude>
-									<exclude>org.apache.flink:flink-core</exclude>
-									<exclude>org.apache.flink:flink-java</exclude>
-									<exclude>org.apache.flink:flink-scala</exclude>
-									<exclude>org.apache.flink:flink-runtime</exclude>
-									<exclude>org.apache.flink:flink-optimizer</exclude>
-									<exclude>org.apache.flink:flink-clients</exclude>
-									<exclude>org.apache.flink:flink-avro</exclude>
-									<exclude>org.apache.flink:flink-java-examples</exclude>
-									<exclude>org.apache.flink:flink-scala-examples</exclude>
-									<exclude>org.apache.flink:flink-streaming-examples</exclude>
-									<exclude>org.apache.flink:flink-streaming-java</exclude>
+									<exclude>org.apache.flink:flink-core_2.11</exclude>
+									<exclude>org.apache.flink:flink-java_2.11</exclude>
+									<exclude>org.apache.flink:flink-scala_2.11</exclude>
+									<exclude>org.apache.flink:flink-runtime_2.11</exclude>
+									<exclude>org.apache.flink:flink-optimizer_2.11</exclude>
+									<exclude>org.apache.flink:flink-clients_2.11</exclude>
+									<exclude>org.apache.flink:flink-avro_2.11</exclude>
+									<exclude>org.apache.flink:flink-java-examples_2.11</exclude>
+									<exclude>org.apache.flink:flink-scala-examples_2.11</exclude>
+									<exclude>org.apache.flink:flink-streaming-examples_2.11</exclude>
+									<exclude>org.apache.flink:flink-streaming-java_2.11</exclude>
 
 									<!-- Also exclude very big transitive dependencies of Flink
 
@@ -362,19 +362,19 @@
 			<dependencies>
 				<dependency>
 					<groupId>org.apache.flink</groupId>
-					<artifactId>flink-java</artifactId>
+					<artifactId>flink-java_2.11</artifactId>
 					<version>${flink.version}</version>
 					<scope>provided</scope>
 				</dependency>
 				<dependency>
 					<groupId>org.apache.flink</groupId>
-					<artifactId>flink-streaming-java</artifactId>
+					<artifactId>flink-streaming-java_2.11</artifactId>
 					<version>${flink.version}</version>
 					<scope>provided</scope>
 				</dependency>
 				<dependency>
 					<groupId>org.apache.flink</groupId>
-					<artifactId>flink-clients</artifactId>
+					<artifactId>flink-clients_2.11</artifactId>
 					<version>${flink.version}</version>
 					<scope>provided</scope>
 				</dependency>

@@ -52,9 +52,9 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public class QueryableWindowOperator
-		extends AbstractStreamOperator<Tuple2<Long, Long>>
-		implements OneInputStreamOperator<Tuple2<Long, Long>, Tuple2<Long, Long>>, Triggerable, QueryableKeyValueState<Long, Long> {
+public class QueryableWindowOperator<T>
+		extends AbstractStreamOperator<Tuple2<T, Long>>
+		implements OneInputStreamOperator<Tuple2<T, Long>, Tuple2<T, Long>>, Triggerable, QueryableKeyValueState<T, Long> {
 
 	private static final Logger LOG = LoggerFactory.getLogger(QueryableWindowOperator.class);
 
@@ -64,12 +64,12 @@ public class QueryableWindowOperator
 	// first key is the window key, i.e. the end of the window
 	// second key is the key of the element
 	// these are checkpointed, i.e. fault-tolerant
-	private Map<Long, Map<Long, Long>> windows;
+	private Map<Long, Map<T, Long>> windows;
 
 	// we retain the windows for a bit after emitting to give
 	// them time to propagate to their final storage location
 	// they are not stored as part of checkpointing
-	private Map<Long, Map<Long, Long>> retainedWindows;
+	private Map<Long, Map<T, Long>> retainedWindows;
 	private long lastSetTriggerTime = 0;
 
 	private final FiniteDuration timeout = new FiniteDuration(20, TimeUnit.SECONDS);
@@ -126,15 +126,16 @@ public class QueryableWindowOperator
 	}
 
 	@Override
-	public void processElement(StreamRecord<Tuple2<Long, Long>> streamRecord) throws Exception {
+	public void processElement(StreamRecord<Tuple2<T, Long>> streamRecord) throws Exception {
+		T key = streamRecord.getValue().f0;
 
 		long timestamp = streamRecord.getTimestamp();
 		long windowStart = timestamp - (timestamp % windowSize);
 		long windowEnd = windowStart + windowSize;
 
-		Long elementKey = streamRecord.getValue().f0;
+		T elementKey = streamRecord.getValue().f0;
 
-		Map<Long, Long> window = windows.get(windowEnd);
+		Map<T, Long> window = windows.get(windowEnd);
 		if (window == null) {
 			window = new HashMap<>();
 			windows.put(windowEnd, window);
@@ -144,7 +145,7 @@ public class QueryableWindowOperator
 		if (previous == null) {
 			window.put(elementKey, 1L);
 		} else {
-			window.put(elementKey, previous + 1L);
+			window.put(key, previous + streamRecord.getValue().f1);
 		}
 	}
 
@@ -152,12 +153,12 @@ public class QueryableWindowOperator
 	public void processWatermark(Watermark watermark) throws Exception {
 		StreamRecord<Tuple2<Long, Long>> result = new StreamRecord<>(null, -1);
 
-		Iterator<Map.Entry<Long, Map<Long, Long>>> iterator = windows.entrySet().iterator();
+		Iterator<Map.Entry<Long, Map<T, Long>>> iterator = windows.entrySet().iterator();
 		while (iterator.hasNext()) {
-			Map.Entry<Long, Map<Long, Long>> window = iterator.next();
+			Map.Entry<Long, Map<T, Long>> window = iterator.next();
 			if (window.getKey() < watermark.getTimestamp()) {
-				for (Map.Entry<Long, Long> value: window.getValue().entrySet()) {
-					Tuple2<Long, Long> resultTuple = Tuple2.of(value.getKey(), value.getValue());
+				for (Map.Entry<T, Long> value: window.getValue().entrySet()) {
+					Tuple2<T, Long> resultTuple = Tuple2.of(value.getKey(), value.getValue());
 					output.collect(result.replace(resultTuple));
 				}
 				retainedWindows.put(window.getKey(), window.getValue());
@@ -182,10 +183,10 @@ public class QueryableWindowOperator
 	public StreamTaskState snapshotOperatorState(final long checkpointId, final long timestamp) throws Exception {
 		StreamTaskState taskState = super.snapshotOperatorState(checkpointId, timestamp);
 
-		final Map<Long, Map<Long, Long>> stateSnapshot = new HashMap<>(windows.size());
+		final Map<Long, Map<T, Long>> stateSnapshot = new HashMap<>(windows.size());
 
-		for (Map.Entry<Long, Map<Long, Long>> window: windows.entrySet()) {
-			stateSnapshot.put(window.getKey(), new HashMap<Long, Long>(window.getValue()));
+		for (Map.Entry<Long, Map<T, Long>> window: windows.entrySet()) {
+			stateSnapshot.put(window.getKey(), new HashMap<T, Long>(window.getValue()));
 		}
 
 		AsynchronousStateHandle<DataInputView> asyncState = new DataInputViewAsynchronousStateHandle(
@@ -211,13 +212,17 @@ public class QueryableWindowOperator
 		StateHandle<DataInputView> inputState = (StateHandle<DataInputView>) taskState.getOperatorState();
 		DataInputView in = inputState.getState(getUserCodeClassloader());
 
-		int numWindows = in.readInt();
 
+		// TODO: Actually read the snapshot here after we decide how to de/serialize
+		// TODO: Now we just read the # of windows -- useless.
+
+		int numWindows = in.readInt();
 		this.windows = new HashMap<>(numWindows);
 
+		/*
 		for (int i = 0; i < numWindows; i++) {
 			long windowEnd = in.readLong();
-			Map<Long, Long> window = new HashMap<>();
+			Map<T, Long> window = new HashMap<>();
 			windows.put(windowEnd, window);
 
 			int numKeys = in.readInt();
@@ -228,10 +233,11 @@ public class QueryableWindowOperator
 				window.put(key, value);
 			}
 		}
+		*/
 	}
 
 	@Override
-	public Long getValue(long timestamp, Long key) throws WrongKeyPartitionException {
+	public Long getValue(long timestamp, T key) throws WrongKeyPartitionException {
 		if (key.hashCode() % getRuntimeContext().getNumberOfParallelSubtasks() != getRuntimeContext().getIndexOfThisSubtask()) {
 			throw new WrongKeyPartitionException("Key " + key + " is not part of the partition " +
 					"of subtask " + getRuntimeContext().getIndexOfThisSubtask());
@@ -243,7 +249,7 @@ public class QueryableWindowOperator
 		Long result = null;
 
 		if (windows != null) {
-			Map<Long, Long> window = windows.get(windowEnd);
+			Map<T, Long> window = windows.get(windowEnd);
 
 			if (window != null) {
 				result = window.get(key);
@@ -255,7 +261,7 @@ public class QueryableWindowOperator
 		}
 
 		if (retainedWindows != null) {
-			Map<Long, Long> window = retainedWindows.get(windowEnd);
+			Map<T, Long> window = retainedWindows.get(windowEnd);
 
 			if (window != null) {
 				result = window.get(key);
@@ -303,16 +309,16 @@ public class QueryableWindowOperator
 		}
 	}
 
-	private static class DataInputViewAsynchronousStateHandle extends AsynchronousStateHandle<DataInputView> {
+	private static class DataInputViewAsynchronousStateHandle<T> extends AsynchronousStateHandle<DataInputView> {
 
 		private final long checkpointId;
 		private final long timestamp;
-		private Map<Long, Map<Long, Long>> stateSnapshot;
+		private Map<Long, Map<T, Long>> stateSnapshot;
 		private StateBackend<?> backend;
 
 		public DataInputViewAsynchronousStateHandle(long checkpointId,
 				long timestamp,
-				Map<Long, Map<Long, Long>> stateSnapshot,
+				Map<Long, Map<T, Long>> stateSnapshot,
 				StateBackend<?> backend) {
 			this.checkpointId = checkpointId;
 			this.timestamp = timestamp;
@@ -326,19 +332,24 @@ public class QueryableWindowOperator
 					checkpointId,
 					timestamp);
 
+			// TODO: Actutally serialize our state properly here!
+			// TODO: Right now we just write the current # of windows as a test - useless!
+
 			int numWindows = stateSnapshot.size();
 			out.writeInt(numWindows);
 
-			for (Map.Entry<Long, Map<Long, Long>> window: stateSnapshot.entrySet()) {
+			/*
+			for (Map.Entry<Long, Map<T, Long>> window: stateSnapshot.entrySet()) {
 				out.writeLong(window.getKey());
 				int numKeys = window.getValue().size();
 				out.writeInt(numKeys);
 
-				for (Map.Entry<Long, Long> value : window.getValue().entrySet()) {
+				for (Map.Entry<T, Long> value : window.getValue().entrySet()) {
 					out.writeLong(value.getKey());
 					out.writeLong(value.getValue());
 				}
 			}
+			*/
 
 			return out.closeAndGetHandle();
 		}
